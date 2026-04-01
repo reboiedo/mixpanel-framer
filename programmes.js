@@ -95,7 +95,7 @@
             sections_before: beforeCount
           });
         }
-      }, { threshold: 0.4 });
+      }, { threshold: 0.1 });
 
       for (var s = 0; s < sectionIds.length; s++) {
         var el = document.getElementById(sectionIds[s]);
@@ -112,6 +112,7 @@
       "claim discount": "claim_discount",
       "talk to admissions": "talk_to_admissions",
       "apply now": "apply_now",
+      "how to apply": "apply_now",
       "plan a visit": "plan_a_visit",
       "book a visit": "book_a_visit",
       "request information": "request_information"
@@ -151,8 +152,11 @@
       }
       if (!clickable) return;
 
-      var text = (clickable.innerText || "").trim().toLowerCase();
-      var ctaType = ctaMap[text];
+      // Framer renders responsive variants inside each <a>, so innerText
+      // may repeat the label across multiple lines. Use the first line only.
+      var rawText = (clickable.innerText || "").trim().toLowerCase();
+      var firstLine = rawText.split("\n")[0].trim();
+      var ctaType = ctaMap[firstLine];
       if (!ctaType) return;
 
       var href = clickable.getAttribute("href") || "";
