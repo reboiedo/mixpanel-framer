@@ -57,9 +57,9 @@
 
   waitForMixpanel(function() {
 
-    // Override sendBeacon transport so custom events send immediately via XHR.
-    // CTA clicks that redirect use sendBeacon per-call instead.
-    mixpanel.set_config({ api_transport: "XHR" });
+    // Use sendBeacon (survives page navigations) but flush immediately
+    // instead of batching, so events are sent right away.
+    mixpanel.set_config({ api_transport: "sendBeacon", batch_flush_interval_ms: 0 });
 
     // Register UTM super properties + landing programme
     var utms = getUTMs();
@@ -183,7 +183,7 @@
         faculty_viewed: hasSectionViewed("faculty"),
         career_viewed: hasSectionViewed("career"),
         href: href
-      }, { transport: "sendBeacon" });
+      });
     }, true);
 
     // ── Tab interaction tracking ───────────────────────────────────────
