@@ -57,6 +57,10 @@
 
   waitForMixpanel(function() {
 
+    // Override sendBeacon transport so custom events send immediately via XHR.
+    // CTA clicks that redirect use sendBeacon per-call instead.
+    mixpanel.set_config({ api_transport: "XHR" });
+
     // Register UTM super properties + landing programme
     var utms = getUTMs();
     utms.landing_programme = programmeSlug;
