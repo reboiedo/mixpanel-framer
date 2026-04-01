@@ -13,7 +13,7 @@ Each Framer project has two custom code slots. Both must be set to **Run: On Eve
 ### 1. `<head>` — Paste this exactly
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@main/init.js"></script>
+<script src="https://raw.githubusercontent.com/reboiedo/mixpanel-framer/main/init.js"></script>
 ```
 
 This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocapture, session recording, etc.). No tracking logic.
@@ -23,18 +23,18 @@ This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocap
 For programme pages (`/programmes/*`):
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@main/programmes.js"></script>
+<script src="https://raw.githubusercontent.com/reboiedo/mixpanel-framer/main/programmes.js"></script>
 ```
 
 For future page types, add the corresponding script tag (e.g., `application.js`, `homepage.js`).
 
-### jsDelivr URL pattern
+### URL pattern
 
 ```
-https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@main/[filename].js
+https://raw.githubusercontent.com/reboiedo/mixpanel-framer/main/[filename].js
 ```
 
-> **Cache note:** jsDelivr caches files. To bust the cache after a push, use `purge.jsdelivr.net/gh/reboiedo/mixpanel-framer@main/[filename].js` or reference a specific commit hash instead of `@main`.
+> **Cache:** GitHub raw URLs cache for ~5 minutes. Changes go live shortly after pushing to `main`.
 
 ## Repo structure
 
