@@ -172,7 +172,7 @@
         faculty_viewed: hasSectionViewed("faculty"),
         career_viewed: hasSectionViewed("career"),
         href: href
-      });
+      }, { transport: "sendBeacon" });
     }, true);
 
     // ── Tab interaction tracking ───────────────────────────────────────
