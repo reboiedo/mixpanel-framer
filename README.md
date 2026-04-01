@@ -13,7 +13,7 @@ Each Framer project has two custom code slots. Both must be set to **Run: On Eve
 ### 1. `<head>` — Paste this exactly
 
 ```html
-<script src="https://raw.githubusercontent.com/reboiedo/mixpanel-framer/main/init.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@latest/init.js"></script>
 ```
 
 This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocapture, session recording, etc.). No tracking logic.
@@ -23,7 +23,7 @@ This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocap
 For programme pages (`/programmes/*`):
 
 ```html
-<script src="https://raw.githubusercontent.com/reboiedo/mixpanel-framer/main/programmes.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@latest/programmes.js"></script>
 ```
 
 For future page types, add the corresponding script tag (e.g., `application.js`, `homepage.js`).
@@ -31,10 +31,13 @@ For future page types, add the corresponding script tag (e.g., `application.js`,
 ### URL pattern
 
 ```
-https://raw.githubusercontent.com/reboiedo/mixpanel-framer/main/[filename].js
+https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@latest/[filename].js
 ```
 
-> **Cache:** GitHub raw URLs cache for ~5 minutes. Changes go live shortly after pushing to `main`.
+`@latest` resolves to the most recent git tag. To deploy changes:
+1. Push to `main`
+2. Create a new tag: `git tag v1.x && git push origin v1.x`
+3. jsDelivr picks up the new tag immediately — no cache purging needed.
 
 ## Repo structure
 

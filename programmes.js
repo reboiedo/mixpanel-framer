@@ -79,7 +79,7 @@
     if (typeof IntersectionObserver === "function") {
       var sectionIds = [
         "overview", "modes", "why", "career", "curriculum",
-        "faculty", "campus", "pricing", "how"
+        "faculty", "campus", "pricing", "how", "faq"
       ];
 
       var observer = new IntersectionObserver(function(entries) {
@@ -131,7 +131,7 @@
     function getNearestSection() {
       var sectionIds = [
         "overview", "modes", "why", "career", "curriculum",
-        "faculty", "campus", "pricing", "how"
+        "faculty", "campus", "pricing", "how", "faq"
       ];
       var best = null;
       for (var i = 0; i < sectionIds.length; i++) {
@@ -180,46 +180,39 @@
     }, true);
 
     // ── Tab interaction tracking ───────────────────────────────────────
+    // Framer renders tabs as plain <div> elements (no role="tab", no <button>).
+    // We listen on the section container and match any clicked element whose
+    // own text (not children's) matches a tab keyword.
 
-    function trackTabClicks(containerIds, eventName, propName, valueMap) {
-      for (var c = 0; c < containerIds.length; c++) {
-        var container = document.getElementById(containerIds[c]);
-        if (!container) continue;
+    function trackTabClicks(containerId, eventName, propName, valueMap) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
 
-        (function(cont, evName, pName, vMap) {
-          cont.addEventListener("click", function(e) {
-            var target = e.target;
-            if (!target) return;
+      container.addEventListener("click", function(e) {
+        var el = e.target;
+        if (!el) return;
 
-            var clickable = target.closest ? target.closest("a, button, [role='tab']") : null;
-            if (!clickable && (target.tagName === "A" || target.tagName === "BUTTON")) {
-              clickable = target;
-            }
-            if (!clickable) return;
-
-            var text = (clickable.innerText || "").trim().toLowerCase();
-            var matchedValue = null;
-
-            for (var key in vMap) {
-              if (vMap.hasOwnProperty(key) && text.indexOf(key) !== -1) {
-                matchedValue = vMap[key];
-                break;
-              }
-            }
-
-            if (matchedValue) {
+        // Walk up from click target looking for a text match
+        var maxDepth = 5;
+        while (el && el !== container && maxDepth > 0) {
+          var text = (el.innerText || "").trim().toLowerCase().split("\n")[0].trim();
+          for (var key in valueMap) {
+            if (valueMap.hasOwnProperty(key) && text === key) {
               var props = { programme: programmeSlug };
-              props[pName] = matchedValue;
-              mixpanel.track(evName, props);
+              props[propName] = valueMap[key];
+              mixpanel.track(eventName, props);
+              return;
             }
-          });
-        })(container, eventName, propName, valueMap);
-      }
+          }
+          el = el.parentElement;
+          maxDepth--;
+        }
+      });
     }
 
     // Campus tabs: Barcelona / Bangkok
     trackTabClicks(
-      ["campus"],
+      "campus",
       "Programme Campus Tab Clicked",
       "campus",
       { "barcelona": "barcelona", "bangkok": "bangkok" }
@@ -227,18 +220,18 @@
 
     // Study mode tabs: Masters / Applied Masters
     trackTabClicks(
-      ["modes"],
+      "modes",
       "Programme Study Mode Selected",
       "study_mode",
-      { "masters": "masters", "applied": "applied_masters" }
+      { "masters": "masters", "applied masters": "applied_masters" }
     );
 
     // Tuition tabs: Internationals / Spanish & Thai
     trackTabClicks(
-      ["pricing"],
+      "pricing",
       "Programme Tuition Tab Clicked",
       "tuition_tab",
-      { "international": "internationals", "spanish": "spanish_thai", "thai": "spanish_thai" }
+      { "internationals": "internationals", "spanish & thai": "spanish_thai" }
     );
 
     // ── Video play tracking ────────────────────────────────────────────
@@ -280,31 +273,41 @@
     }
 
     // ── FAQ tracking ───────────────────────────────────────────────────
+    // Framer FAQ items are plain <div> elements with cursor:pointer inside
+    // a #faq section. We listen on the section and walk up from the click
+    // target to find a div whose text contains "?".
 
-    document.addEventListener("click", function(e) {
-      var target = e.target;
-      if (!target) return;
+    var faqSection = document.getElementById("faq");
+    if (faqSection) {
+      var faqTracked = {};
+      faqSection.addEventListener("click", function(e) {
+        var el = e.target;
+        if (!el) return;
 
-      // Look for common FAQ patterns: <details>, <summary>, or elements with FAQ-like roles
-      var faqTrigger = target.closest
-        ? target.closest("summary, [data-faq], [aria-expanded], details > *:first-child")
-        : null;
+        var maxDepth = 8;
+        while (el && el !== faqSection && maxDepth > 0) {
+          var style = window.getComputedStyle(el);
+          var text = (el.innerText || "").trim();
+          if (style.cursor === "pointer" && text.indexOf("?") !== -1 &&
+              text.length > 5 && text.length < 300) {
+            // Avoid duplicate fires for the same question
+            if (faqTracked[text]) return;
+            faqTracked[text] = true;
 
-      if (!faqTrigger) return;
+            // Reset after 1s so re-clicking the same FAQ fires again
+            setTimeout(function() { delete faqTracked[text]; }, 1000);
 
-      var questionText = (faqTrigger.innerText || "").trim();
-      if (questionText.length <= 5) return;
-
-      // Truncate very long question text
-      if (questionText.length > 200) {
-        questionText = questionText.substring(0, 200);
-      }
-
-      mixpanel.track("Programme FAQ Opened", {
-        programme: programmeSlug,
-        question: questionText
+            mixpanel.track("Programme FAQ Opened", {
+              programme: programmeSlug,
+              question: text.length > 200 ? text.substring(0, 200) : text
+            });
+            return;
+          }
+          el = el.parentElement;
+          maxDepth--;
+        }
       });
-    });
+    }
 
   }); // end waitForMixpanel
 
