@@ -76,47 +76,58 @@
 
     // ── Section visibility tracking ────────────────────────────────────
 
+    // Map section IDs to numbered display names for sorted reporting
+    var sectionMap = {
+      "overview":   "01. Overview",
+      "modes":      "02. Modes",
+      "why":        "03. Why",
+      "career":     "04. Career",
+      "curriculum": "05. Curriculum",
+      "faculty":    "06. Faculty",
+      "campus":     "07. Campus",
+      "pricing":    "08. Pricing",
+      "how":        "09. How to Apply",
+      "faq":        "10. FAQ"
+    };
+
     if (typeof IntersectionObserver === "function") {
-      // Map section IDs to numbered display names for sorted reporting
-      var sectionMap = {
-        "overview":   "01. Overview",
-        "modes":      "02. Modes",
-        "why":        "03. Why",
-        "career":     "04. Career",
-        "curriculum": "05. Curriculum",
-        "faculty":    "06. Faculty",
-        "campus":     "07. Campus",
-        "pricing":    "08. Pricing",
-        "how":        "09. How to Apply",
-        "faq":        "10. FAQ"
-      };
-      var sectionIds = Object.keys(sectionMap);
+      // Delay observer setup so Framer's hydration/render cycle settles
+      // and doesn't falsely trigger sections during initial layout.
+      setTimeout(function() {
+        var sectionIds = Object.keys(sectionMap);
+        var hasUserScrolled = false;
 
-      var observer = new IntersectionObserver(function(entries) {
-        for (var i = 0; i < entries.length; i++) {
-          var entry = entries[i];
-          if (!entry.isIntersecting) continue;
+        window.addEventListener("scroll", function() { hasUserScrolled = true; }, { once: true });
 
-          var sectionId = entry.target.id;
-          if (hasSectionViewed(sectionId)) continue;
+        var observer = new IntersectionObserver(function(entries) {
+          // Ignore intersection events until the user has actually scrolled
+          if (!hasUserScrolled) return;
 
-          var beforeCount = sectionsViewed.length;
-          addSectionViewed(sectionId);
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!entry.isIntersecting) continue;
 
-          mixpanel.track("Programme Section Viewed", {
-            programme: programmeSlug,
-            section_name: sectionMap[sectionId] || sectionId,
-            sections_before: beforeCount
-          });
+            var sectionId = entry.target.id;
+            if (hasSectionViewed(sectionId)) continue;
+
+            var beforeCount = sectionsViewed.length;
+            addSectionViewed(sectionId);
+
+            mixpanel.track("Programme Section Viewed", {
+              programme: programmeSlug,
+              section_name: sectionMap[sectionId] || sectionId,
+              sections_before: beforeCount
+            });
+          }
+        }, { threshold: 0.15 });
+
+        for (var s = 0; s < sectionIds.length; s++) {
+          var el = document.getElementById(sectionIds[s]);
+          if (el) {
+            observer.observe(el);
+          }
         }
-      }, { threshold: 0.1 });
-
-      for (var s = 0; s < sectionIds.length; s++) {
-        var el = document.getElementById(sectionIds[s]);
-        if (el) {
-          observer.observe(el);
-        }
-      }
+      }, 1500);
     }
 
     // ── CTA click tracking ─────────────────────────────────────────────
@@ -243,41 +254,59 @@
 
     // ── Video play tracking ────────────────────────────────────────────
 
-    var whySection = document.getElementById("why");
-    if (whySection) {
-      var videos = whySection.getElementsByTagName("video");
-      for (var v = 0; v < videos.length; v++) {
-        (function(video) {
-          video.addEventListener("play", function() {
-            mixpanel.track("Programme Video Played", {
-              programme: programmeSlug,
-              section: "why"
-            });
-          });
-        })(videos[v]);
+    // ── Video play tracking ────────────────────────────────────────────
+    // Only track user-initiated video plays (modal/click-to-play),
+    // not the muted background video that autoplays on load.
+    // Listen for clicks on play buttons or video overlays that open a modal.
+
+    var videoTracked = false;
+
+    document.addEventListener("click", function(e) {
+      if (videoTracked) return;
+      var target = e.target;
+      if (!target) return;
+
+      // Look for play button clicks or video modal triggers near the #why section
+      var whySection = document.getElementById("why");
+      if (!whySection) return;
+      if (!whySection.contains(target)) return;
+
+      // Match play button icons, video overlays, or elements that trigger a modal
+      var isPlayTrigger = target.closest
+        ? target.closest("[data-framer-name*='play' i], [data-framer-name*='video' i], [aria-label*='play' i], svg, [class*='Play']")
+        : null;
+
+      if (isPlayTrigger) {
+        videoTracked = true;
+        mixpanel.track("Programme Video Played", {
+          programme: programmeSlug,
+          section: "why"
+        });
       }
+    }, true);
 
-      // Also handle iframes (e.g. YouTube/Vimeo embeds) via postMessage
-      window.addEventListener("message", function(e) {
-        var data = e.data;
-        if (typeof data === "string") {
-          try { data = JSON.parse(data); } catch (err) { return; }
-        }
-        if (!data) return;
+    // Also handle iframes (e.g. YouTube/Vimeo embeds in modals) via postMessage
+    window.addEventListener("message", function(e) {
+      if (videoTracked) return;
+      var data = e.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch (err) { return; }
+      }
+      if (!data) return;
 
-        // YouTube
-        var isYTPlay = data.event === "onStateChange" && data.info === 1;
-        // Vimeo
-        var isVimeoPlay = data.event === "ready" || (data.method === "addEventListener" && data.value === "play") || data.event === "play";
+      // YouTube
+      var isYTPlay = data.event === "onStateChange" && data.info === 1;
+      // Vimeo
+      var isVimeoPlay = data.event === "play";
 
-        if (isYTPlay || isVimeoPlay) {
-          mixpanel.track("Programme Video Played", {
-            programme: programmeSlug,
-            section: "why"
-          });
-        }
-      });
-    }
+      if (isYTPlay || isVimeoPlay) {
+        videoTracked = true;
+        mixpanel.track("Programme Video Played", {
+          programme: programmeSlug,
+          section: "why"
+        });
+      }
+    });
 
     // ── FAQ tracking ───────────────────────────────────────────────────
     // Framer FAQ items are plain <div> elements with cursor:pointer inside
