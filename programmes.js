@@ -77,25 +77,35 @@
     // ── Section visibility tracking ────────────────────────────────────
 
     if (typeof IntersectionObserver === "function") {
-      var sectionIds = [
-        "overview", "modes", "why", "career", "curriculum",
-        "faculty", "campus", "pricing", "how", "faq"
-      ];
+      // Map section IDs to numbered display names for sorted reporting
+      var sectionMap = {
+        "overview":   "01. Overview",
+        "modes":      "02. Modes",
+        "why":        "03. Why",
+        "career":     "04. Career",
+        "curriculum": "05. Curriculum",
+        "faculty":    "06. Faculty",
+        "campus":     "07. Campus",
+        "pricing":    "08. Pricing",
+        "how":        "09. How to Apply",
+        "faq":        "10. FAQ"
+      };
+      var sectionIds = Object.keys(sectionMap);
 
       var observer = new IntersectionObserver(function(entries) {
         for (var i = 0; i < entries.length; i++) {
           var entry = entries[i];
           if (!entry.isIntersecting) continue;
 
-          var sectionName = entry.target.id;
-          if (hasSectionViewed(sectionName)) continue;
+          var sectionId = entry.target.id;
+          if (hasSectionViewed(sectionId)) continue;
 
           var beforeCount = sectionsViewed.length;
-          addSectionViewed(sectionName);
+          addSectionViewed(sectionId);
 
           mixpanel.track("Programme Section Viewed", {
             programme: programmeSlug,
-            section_name: sectionName,
+            section_name: sectionMap[sectionId] || sectionId,
             sections_before: beforeCount
           });
         }
@@ -129,17 +139,14 @@
     }
 
     function getNearestSection() {
-      var sectionIds = [
-        "overview", "modes", "why", "career", "curriculum",
-        "faculty", "campus", "pricing", "how", "faq"
-      ];
+      var ids = Object.keys(sectionMap);
       var best = null;
-      for (var i = 0; i < sectionIds.length; i++) {
-        var el = document.getElementById(sectionIds[i]);
+      for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
         if (!el) continue;
         var rect = el.getBoundingClientRect();
         if (rect.top <= 120) {
-          best = sectionIds[i];
+          best = sectionMap[ids[i]];
         }
       }
       return best || "unknown";
