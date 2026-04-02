@@ -72,25 +72,26 @@
     }
 
     document.addEventListener("click", function(e) {
-      var target = e.target;
-      if (!target) return;
+      var el = e.target;
+      if (!el) return;
 
-      var clickable = target.closest ? target.closest("a, button") : null;
-      if (!clickable && (target.tagName === "A" || target.tagName === "BUTTON")) {
-        clickable = target;
+      // Walk up from click target to find an element whose text matches a CTA.
+      // Framer wraps CTAs in nested divs — the <a> tag isn't always the click target.
+      var ctaType = null;
+      var node = el;
+      var maxDepth = 8;
+      while (node && maxDepth > 0) {
+        var text = (node.innerText || "").trim().toLowerCase().split("\n")[0].trim();
+        if (ctaMap[text]) { ctaType = ctaMap[text]; break; }
+        node = node.parentElement;
+        maxDepth--;
       }
-      if (!clickable) return;
-
-      var rawText = (clickable.innerText || "").trim().toLowerCase();
-      var firstLine = rawText.split("\n")[0].trim();
-      var ctaType = ctaMap[firstLine];
       if (!ctaType) return;
 
       mixpanel.track("Programme CTA Clicked", {
         programme: programmeSlug,
         cta_type: ctaType,
-        cta_location: getCtaLocation(clickable),
-        href: clickable.getAttribute("href") || ""
+        cta_location: getCtaLocation(el)
       });
 
       if (typeof mixpanel.flush === "function") {
