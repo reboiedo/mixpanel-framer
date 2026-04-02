@@ -62,16 +62,10 @@
     };
 
     function getCtaLocation(el) {
-      var locMap = {
-        "cta-nav": "nav",
-        "cta-primary-hero": "hero",
-        "sidebar": "sidebar",
-        "pricing": "pricing",
-        "final-cta": "footer"
-      };
+      var locs = ["nav", "hero", "sidebar", "pricing", "final-cta"];
       var node = el;
       while (node) {
-        if (node.id && locMap[node.id] !== undefined) return locMap[node.id];
+        if (node.id && locs.indexOf(node.id) !== -1) return node.id;
         node = node.parentElement;
       }
       return "unknown";
