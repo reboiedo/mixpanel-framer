@@ -84,6 +84,12 @@
         cta_type: ctaType,
         href: clickable.getAttribute("href") || ""
       });
+
+      // Force immediate flush — CTA clicks often trigger page navigation
+      // so the batch queue won't have time to flush on its own.
+      if (typeof mixpanel.flush === "function") {
+        mixpanel.flush();
+      }
     }, true);
 
   }); // end waitForMixpanel
