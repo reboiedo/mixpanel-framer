@@ -1,3 +1,5 @@
+<!-- Harbour.Space — Programme Tracking — Paste in Framer end of <body> custom code -->
+<script>
 (function() {
   "use strict";
 
@@ -98,3 +100,4 @@
   }); // end waitForMixpanel
 
 })();
+</script>
