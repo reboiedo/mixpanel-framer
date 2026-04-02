@@ -61,19 +61,28 @@
       "request information": "request_information"
     };
 
+    function getCtaLocation(el) {
+      var section = el.closest ? el.closest("section[id]") : null;
+      if (section) return section.id;
+      if (el.closest && el.closest("#hero")) return "hero";
+      var rect = el.getBoundingClientRect();
+      var absY = rect.top + (window.pageYOffset || 0);
+      if (absY < 100) return "nav";
+      var pageH = document.documentElement.scrollHeight;
+      if (absY > pageH - 500) return "footer";
+      return "sidebar";
+    }
+
     document.addEventListener("click", function(e) {
       var target = e.target;
       if (!target) return;
 
-      // Walk up to find the nearest <a> or <button>
       var clickable = target.closest ? target.closest("a, button") : null;
       if (!clickable && (target.tagName === "A" || target.tagName === "BUTTON")) {
         clickable = target;
       }
       if (!clickable) return;
 
-      // Framer renders responsive variants inside each <a>, so innerText
-      // may repeat the label across multiple lines. Use the first line only.
       var rawText = (clickable.innerText || "").trim().toLowerCase();
       var firstLine = rawText.split("\n")[0].trim();
       var ctaType = ctaMap[firstLine];
@@ -82,11 +91,10 @@
       mixpanel.track("Programme CTA Clicked", {
         programme: programmeSlug,
         cta_type: ctaType,
+        cta_location: getCtaLocation(clickable),
         href: clickable.getAttribute("href") || ""
       });
 
-      // Force immediate flush — CTA clicks often trigger page navigation
-      // so the batch queue won't have time to flush on its own.
       if (typeof mixpanel.flush === "function") {
         mixpanel.flush();
       }
