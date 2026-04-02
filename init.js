@@ -34,6 +34,12 @@ mixpanel.init("d0874833a3f33f39a4b623c9c7201246", {
   // Session recording — lower to 25-50 on high-traffic pages
   record_sessions_percent: 100,
 
+  // Show text in session replays (Mixpanel masks all text by default)
+  record_mask_all_text: false,
+
+  // Heatmap data collection
+  record_heatmap_data: true,
+
   // Disable debug in production
   debug: false
 });
