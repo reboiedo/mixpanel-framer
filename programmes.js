@@ -39,10 +39,6 @@
 
   waitForMixpanel(function() {
 
-    // sendBeacon survives page navigations (browser sends even after unload).
-    // Small batch interval ensures events flush quickly without per-event overhead.
-    mixpanel.set_config({ api_transport: "sendBeacon", batch_flush_interval_ms: 250 });
-
     // Register UTM super properties + landing programme (set once, persist)
     var utms = getUTMs();
     utms.landing_programme = programmeSlug;

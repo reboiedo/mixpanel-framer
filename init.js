@@ -9,8 +9,9 @@ mixpanel.init("d0874833a3f33f39a4b623c9c7201246", {
   // EU data residency — mandatory for Harbour.Space
   api_host: "https://api-eu.mixpanel.com",
 
-  // Default XHR transport sends events immediately.
-  // programmes.js uses sendBeacon specifically for CTA clicks that redirect.
+  // sendBeacon survives page unload; 250ms flush ensures fast delivery
+  api_transport: "sendBeacon",
+  batch_flush_interval_ms: 250,
 
   // localStorage survives ITP / cookie restrictions
   persistence: "localStorage",
