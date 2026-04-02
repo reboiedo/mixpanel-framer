@@ -62,15 +62,19 @@
     };
 
     function getCtaLocation(el) {
-      var section = el.closest ? el.closest("section[id]") : null;
-      if (section) return section.id;
-      if (el.closest && el.closest("#hero")) return "hero";
-      var rect = el.getBoundingClientRect();
-      var absY = rect.top + (window.pageYOffset || 0);
-      if (absY < 100) return "nav";
-      var pageH = document.documentElement.scrollHeight;
-      if (absY > pageH - 500) return "footer";
-      return "sidebar";
+      var locMap = {
+        "cta-nav": "nav",
+        "cta-primary-hero": "hero",
+        "sidebar": "sidebar",
+        "pricing": "pricing",
+        "final-cta": "footer"
+      };
+      var node = el;
+      while (node) {
+        if (node.id && locMap[node.id] !== undefined) return locMap[node.id];
+        node = node.parentElement;
+      }
+      return "unknown";
     }
 
     document.addEventListener("click", function(e) {
