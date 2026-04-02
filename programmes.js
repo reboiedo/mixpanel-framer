@@ -35,24 +35,6 @@
   var pathParts = window.location.pathname.split("/programmes/");
   var programmeSlug = (pathParts[1] || "unknown").replace(/\/+$/, "");
 
-  // ── State ────────────────────────────────────────────────────────────
-
-  var sectionsViewed = [];
-
-  function addSectionViewed(name) {
-    for (var i = 0; i < sectionsViewed.length; i++) {
-      if (sectionsViewed[i] === name) return;
-    }
-    sectionsViewed.push(name);
-  }
-
-  function hasSectionViewed(name) {
-    for (var i = 0; i < sectionsViewed.length; i++) {
-      if (sectionsViewed[i] === name) return true;
-    }
-    return false;
-  }
-
   // ── Init ─────────────────────────────────────────────────────────────
 
   waitForMixpanel(function() {
@@ -61,74 +43,10 @@
     // Small batch interval ensures events flush quickly without per-event overhead.
     mixpanel.set_config({ api_transport: "sendBeacon", batch_flush_interval_ms: 250 });
 
-    // Register UTM super properties + landing programme
+    // Register UTM super properties + landing programme (set once, persist)
     var utms = getUTMs();
     utms.landing_programme = programmeSlug;
     mixpanel.register_once(utms);
-
-    // ── Programme Page Viewed ──────────────────────────────────────────
-
-    mixpanel.track("Programme Page Viewed", {
-      programme: programmeSlug,
-      referrer: document.referrer || "",
-      page_title: document.title || ""
-    });
-
-    // ── Section visibility tracking ────────────────────────────────────
-
-    // Map section IDs to numbered display names for sorted reporting
-    var sectionMap = {
-      "overview":   "01. Overview",
-      "modes":      "02. Modes",
-      "why":        "03. Why",
-      "career":     "04. Career",
-      "curriculum": "05. Curriculum",
-      "faculty":    "06. Faculty",
-      "campus":     "07. Campus",
-      "pricing":    "08. Pricing",
-      "how":        "09. How to Apply",
-      "faq":        "10. FAQ"
-    };
-
-    if (typeof IntersectionObserver === "function") {
-      // Delay observer setup so Framer's hydration/render cycle settles
-      // and doesn't falsely trigger sections during initial layout.
-      setTimeout(function() {
-        var sectionIds = Object.keys(sectionMap);
-        var hasUserScrolled = false;
-
-        window.addEventListener("scroll", function() { hasUserScrolled = true; }, { once: true });
-
-        var observer = new IntersectionObserver(function(entries) {
-          // Ignore intersection events until the user has actually scrolled
-          if (!hasUserScrolled) return;
-
-          for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            if (!entry.isIntersecting) continue;
-
-            var sectionId = entry.target.id;
-            if (hasSectionViewed(sectionId)) continue;
-
-            var beforeCount = sectionsViewed.length;
-            addSectionViewed(sectionId);
-
-            mixpanel.track("Programme Section Viewed", {
-              programme: programmeSlug,
-              section_name: sectionMap[sectionId] || sectionId,
-              sections_before: beforeCount
-            });
-          }
-        }, { threshold: 0.15 });
-
-        for (var s = 0; s < sectionIds.length; s++) {
-          var el = document.getElementById(sectionIds[s]);
-          if (el) {
-            observer.observe(el);
-          }
-        }
-      }, 1500);
-    }
 
     // ── CTA click tracking ─────────────────────────────────────────────
 
@@ -142,26 +60,6 @@
       "book a visit": "book_a_visit",
       "request information": "request_information"
     };
-
-    function getScrollPct() {
-      var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (docHeight <= 0) return 0;
-      return Math.round((window.pageYOffset / docHeight) * 100);
-    }
-
-    function getNearestSection() {
-      var ids = Object.keys(sectionMap);
-      var best = null;
-      for (var i = 0; i < ids.length; i++) {
-        var el = document.getElementById(ids[i]);
-        if (!el) continue;
-        var rect = el.getBoundingClientRect();
-        if (rect.top <= 120) {
-          best = sectionMap[ids[i]];
-        }
-      }
-      return best || "unknown";
-    }
 
     document.addEventListener("click", function(e) {
       var target = e.target;
@@ -181,169 +79,12 @@
       var ctaType = ctaMap[firstLine];
       if (!ctaType) return;
 
-      var href = clickable.getAttribute("href") || "";
-
       mixpanel.track("Programme CTA Clicked", {
         programme: programmeSlug,
         cta_type: ctaType,
-        cta_section_context: getNearestSection(),
-        cta_scroll_pct: getScrollPct(),
-        sections_viewed: sectionsViewed.slice(),
-        sections_viewed_count: sectionsViewed.length,
-        pricing_viewed: hasSectionViewed("pricing"),
-        faculty_viewed: hasSectionViewed("faculty"),
-        career_viewed: hasSectionViewed("career"),
-        href: href
+        href: clickable.getAttribute("href") || ""
       });
     }, true);
-
-    // ── Tab interaction tracking ───────────────────────────────────────
-    // Framer renders tabs as plain <div> elements (no role="tab", no <button>).
-    // We listen on the section container and match any clicked element whose
-    // own text (not children's) matches a tab keyword.
-
-    function trackTabClicks(containerId, eventName, propName, valueMap) {
-      var container = document.getElementById(containerId);
-      if (!container) return;
-
-      container.addEventListener("click", function(e) {
-        var el = e.target;
-        if (!el) return;
-
-        // Walk up from click target looking for a text match
-        var maxDepth = 5;
-        while (el && el !== container && maxDepth > 0) {
-          var text = (el.innerText || "").trim().toLowerCase().split("\n")[0].trim();
-          for (var key in valueMap) {
-            if (valueMap.hasOwnProperty(key) && text === key) {
-              var props = { programme: programmeSlug };
-              props[propName] = valueMap[key];
-              mixpanel.track(eventName, props);
-              return;
-            }
-          }
-          el = el.parentElement;
-          maxDepth--;
-        }
-      });
-    }
-
-    // Campus tabs: Barcelona / Bangkok
-    trackTabClicks(
-      "campus",
-      "Programme Campus Tab Clicked",
-      "campus",
-      { "barcelona": "barcelona", "bangkok": "bangkok" }
-    );
-
-    // Study mode tabs: Masters / Applied Masters
-    trackTabClicks(
-      "modes",
-      "Programme Study Mode Selected",
-      "study_mode",
-      { "masters": "masters", "applied masters": "applied_masters" }
-    );
-
-    // Tuition tabs: Internationals / Spanish & Thai
-    trackTabClicks(
-      "pricing",
-      "Programme Tuition Tab Clicked",
-      "tuition_tab",
-      { "internationals": "internationals", "spanish & thai": "spanish_thai" }
-    );
-
-    // ── Video play tracking ────────────────────────────────────────────
-
-    // ── Video play tracking ────────────────────────────────────────────
-    // Only track user-initiated video plays (modal/click-to-play),
-    // not the muted background video that autoplays on load.
-    // Listen for clicks on play buttons or video overlays that open a modal.
-
-    var videoTracked = false;
-
-    document.addEventListener("click", function(e) {
-      if (videoTracked) return;
-      var target = e.target;
-      if (!target) return;
-
-      // Look for play button clicks or video modal triggers near the #why section
-      var whySection = document.getElementById("why");
-      if (!whySection) return;
-      if (!whySection.contains(target)) return;
-
-      // Match play button icons, video overlays, or elements that trigger a modal
-      var isPlayTrigger = target.closest
-        ? target.closest("[data-framer-name*='play' i], [data-framer-name*='video' i], [aria-label*='play' i], svg, [class*='Play']")
-        : null;
-
-      if (isPlayTrigger) {
-        videoTracked = true;
-        mixpanel.track("Programme Video Played", {
-          programme: programmeSlug,
-          section: "why"
-        });
-      }
-    }, true);
-
-    // Also handle iframes (e.g. YouTube/Vimeo embeds in modals) via postMessage
-    window.addEventListener("message", function(e) {
-      if (videoTracked) return;
-      var data = e.data;
-      if (typeof data === "string") {
-        try { data = JSON.parse(data); } catch (err) { return; }
-      }
-      if (!data) return;
-
-      // YouTube
-      var isYTPlay = data.event === "onStateChange" && data.info === 1;
-      // Vimeo
-      var isVimeoPlay = data.event === "play";
-
-      if (isYTPlay || isVimeoPlay) {
-        videoTracked = true;
-        mixpanel.track("Programme Video Played", {
-          programme: programmeSlug,
-          section: "why"
-        });
-      }
-    });
-
-    // ── FAQ tracking ───────────────────────────────────────────────────
-    // Framer FAQ items are plain <div> elements with cursor:pointer inside
-    // a #faq section. We listen on the section and walk up from the click
-    // target to find a div whose text contains "?".
-
-    var faqSection = document.getElementById("faq");
-    if (faqSection) {
-      var faqTracked = {};
-      faqSection.addEventListener("click", function(e) {
-        var el = e.target;
-        if (!el) return;
-
-        var maxDepth = 8;
-        while (el && el !== faqSection && maxDepth > 0) {
-          var style = window.getComputedStyle(el);
-          var text = (el.innerText || "").trim();
-          if (style.cursor === "pointer" && text.indexOf("?") !== -1 &&
-              text.length > 5 && text.length < 300) {
-            // Avoid duplicate fires for the same question
-            if (faqTracked[text]) return;
-            faqTracked[text] = true;
-
-            // Reset after 1s so re-clicking the same FAQ fires again
-            setTimeout(function() { delete faqTracked[text]; }, 1000);
-
-            mixpanel.track("Programme FAQ Opened", {
-              programme: programmeSlug,
-              question: text.length > 200 ? text.substring(0, 200) : text
-            });
-            return;
-          }
-          el = el.parentElement;
-          maxDepth--;
-        }
-      });
-    }
 
   }); // end waitForMixpanel
 
