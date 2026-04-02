@@ -4,7 +4,7 @@ Mixpanel tracking scripts for Harbour.Space University's Framer landing pages.
 
 ## Why this repo exists
 
-Framer limits custom code blocks to **5,000 characters**. The Mixpanel init snippet alone is ~2,000 characters, leaving almost no room for tracking logic. This repo hosts JS files served via **jsDelivr CDN**, so each Framer page only needs a single `<script src>` tag (~100 characters).
+Framer limits custom code blocks to **5,000 characters**. The Mixpanel init snippet alone is ~2,000 characters, leaving almost no room for tracking logic. This repo hosts JS files served via **githack.com CDN**, so each Framer page only needs a single `<script src>` tag (~100 characters).
 
 ## Framer setup
 
@@ -13,7 +13,7 @@ Each Framer project has two custom code slots. Both must be set to **Run: On Eve
 ### 1. `<head>` — Paste this exactly
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@latest/init.js"></script>
+<script src="https://raw.githack.com/reboiedo/mixpanel-framer/main/init.js"></script>
 ```
 
 This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocapture, session recording, etc.). No tracking logic.
@@ -23,7 +23,7 @@ This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocap
 For programme pages (`/programmes/*`):
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@latest/programmes.js"></script>
+<script src="https://raw.githack.com/reboiedo/mixpanel-framer/main/programmes.js"></script>
 ```
 
 For future page types, add the corresponding script tag (e.g., `application.js`, `homepage.js`).
@@ -31,13 +31,12 @@ For future page types, add the corresponding script tag (e.g., `application.js`,
 ### URL pattern
 
 ```
-https://cdn.jsdelivr.net/gh/reboiedo/mixpanel-framer@latest/[filename].js
+https://raw.githack.com/reboiedo/mixpanel-framer/main/[filename].js
 ```
 
-`@latest` resolves to the most recent git tag. To deploy changes:
+Serves directly from the `main` branch. To deploy changes:
 1. Push to `main`
-2. Create a new tag: `git tag v1.x && git push origin v1.x`
-3. jsDelivr picks up the new tag immediately — no cache purging needed.
+2. Changes are live within 60 seconds (githack.com cache TTL).
 
 ## Repo structure
 
