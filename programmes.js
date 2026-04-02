@@ -57,9 +57,8 @@
 
   waitForMixpanel(function() {
 
-    // Use sendBeacon (survives page navigations) but flush immediately
-    // instead of batching, so events are sent right away.
-    mixpanel.set_config({ api_transport: "sendBeacon", batch_flush_interval_ms: 0 });
+    // Keep the default XHR transport for reliable delivery of most events.
+    // Only CTA clicks (which navigate away) use sendBeacon inline below.
 
     // Register UTM super properties + landing programme
     var utms = getUTMs();
@@ -183,6 +182,9 @@
 
       var href = clickable.getAttribute("href") || "";
 
+      // Switch to sendBeacon just for this event (survives page navigation),
+      // then restore default XHR transport for subsequent events.
+      mixpanel.set_config({ api_transport: "sendBeacon", batch_flush_interval_ms: 0 });
       mixpanel.track("Programme CTA Clicked", {
         programme: programmeSlug,
         cta_type: ctaType,
@@ -195,6 +197,7 @@
         career_viewed: hasSectionViewed("career"),
         href: href
       });
+      mixpanel.set_config({ api_transport: "XHR", batch_flush_interval_ms: 250 });
     }, true);
 
     // ── Tab interaction tracking ───────────────────────────────────────
