@@ -4,19 +4,15 @@ Mixpanel tracking scripts for Harbour.Space University's Framer landing pages.
 
 ## Why this repo exists
 
-Framer limits custom code blocks to **5,000 characters**. The Mixpanel init snippet alone is ~2,000 characters, leaving almost no room for tracking logic. This repo hosts JS files served via **githack.com CDN**, so each Framer page only needs a single `<script src>` tag (~100 characters).
+Framer limits custom code blocks to **5,000 characters**. The Mixpanel init code is inlined directly in Framer's `<head>` for reliable page view tracking. Page-specific tracking logic (CTA clicks, etc.) is hosted here and served via **githack.com CDN**.
 
 ## Framer setup
 
 Each Framer project has two custom code slots. Both must be set to **Run: On Every Page Visit**.
 
-### 1. `<head>` — Paste this exactly
+### 1. `<head>` — Paste the init code inline
 
-```html
-<script src="https://raw.githack.com/reboiedo/mixpanel-framer/main/init.js"></script>
-```
-
-This loads the Mixpanel SDK and configures it (EU residency, sendBeacon, autocapture, session recording, etc.). No tracking logic.
+Paste the contents of `init.js` wrapped in `<script>` tags directly in Framer's `<head>` custom code. This runs immediately without any external fetch, ensuring page views are always captured. See `init.js` for the full code.
 
 ### 2. End of `<body>` — Paste the script for your page type
 
@@ -28,22 +24,17 @@ For programme pages (`/programmes/*`):
 
 For future page types, add the corresponding script tag (e.g., `application.js`, `homepage.js`).
 
-### URL pattern
+### Deploying changes
 
-```
-https://raw.githack.com/reboiedo/mixpanel-framer/main/[filename].js
-```
-
-Serves directly from the `main` branch. To deploy changes:
-1. Push to `main`
-2. Changes are live within 60 seconds (githack.com cache TTL).
+- **`init.js` changes** require updating the inline code in Framer's `<head>` and re-publishing the site.
+- **`programmes.js` changes** just need a push to `main` — githack.com serves from the branch with a 60-second cache TTL.
 
 ## Repo structure
 
 ```
 /
 ├── README.md          ← this file
-├── init.js            ← Mixpanel SDK loader + config (loaded via CDN in Framer <head>)
+├── init.js            ← Mixpanel SDK loader + config (inlined in Framer <head>)
 ├── shared.js          ← UTM helpers and waitForMixpanel utility
 ├── programmes.js      ← tracking for /programmes/* pages
 └── [future files]     ← application.js, homepage.js, etc.
